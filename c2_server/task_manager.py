@@ -80,11 +80,11 @@ class TaskManager:
         
         if status is None:
             cur.execute("""
-                SELECT command FROM tasks
+                SELECT id, command, status FROM tasks
             """)
         else:
             cur.execute("""
-                SELECT command FROM tasks WHERE status = ?
+                SELECT id, command, status FROM tasks WHERE status = ?
             """, (status,))
 
         return cur.fetchall()
@@ -97,6 +97,3 @@ class TaskManager:
         """, (task_id,))
 
         return cur.fetchone()
-
-
-
