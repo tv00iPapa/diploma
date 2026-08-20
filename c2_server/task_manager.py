@@ -36,7 +36,8 @@ class TaskManager:
         """, (command, agent_id))
 
         con.commit()
-
+    
+    #возвращает команду в виде строки либо None
     def get_next_task(self, con, agent_id):
         cur = con.cursor()
 
@@ -61,8 +62,12 @@ class TaskManager:
             SET status = 'completed', result = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         """, (result, task_id))
-
+        
         con.commit()
+        if cur.rowcount > 0:
+            return True
+        else:
+            return False
 
     def fail_task(self, con, task_id, error_msg):
         cur = con.cursor()
