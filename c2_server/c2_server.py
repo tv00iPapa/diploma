@@ -1,5 +1,3 @@
-import sqlite3
-import sys
 import threading
 
 from task_manager import TaskManager
@@ -86,8 +84,12 @@ def stop_dns_command(listeners):
     stop_listener(listeners, "dns")
 
 def status_command(listeners):
-    #TODO
-    print("In process developnemt.")
+    for protocol in listener_map.keys():
+        if protocol in listeners and listeners[protocol]['thread'].is_alive():
+            status = f"{GREEN}запущен{RESET}"
+        else:
+            status = "не запущен"
+        print(f"{protocol + '-слушатель:':<15} {status}")
 
 def help_command():
     commands_help = {
@@ -117,11 +119,17 @@ def help_command():
     print("    list_tasks pending")
     print("    show_result 1")
 
-def exit_command(connection):
+def exit_command(connection, listeners):
     connection.close()
-    print("[+] C2 остановлен.")
+
+    for key in list(listeners.keys()):
+        listeners[key]['stop_event'].set()
+        listeners[key]['thread'].join(timeout=1)
+
     global running
     running = False
+
+    print("[+] C2 остановлен.")
 
 def parse_and_execute(task_manager, connection, command, listeners):
     parse_command = command.split()
@@ -163,7 +171,7 @@ def parse_and_execute(task_manager, connection, command, listeners):
     elif parse_command[0] == "help":
         help_command()
     elif parse_command[0] == "exit":
-        exit_command(connection)
+        exit_command(connection, listeners)
     else:
         print("[-] Такой команды не существует. Для подробной информации введите \"help\".")
 
@@ -182,7 +190,7 @@ def main():
                 continue
             parse_and_execute(tm, con_cli, command, listeners)
     except KeyboardInterrupt:
-        exit_command(con_cli)
+        exit_command(con_cli, listeners)
 
 if __name__ == "__main__":
     main()
