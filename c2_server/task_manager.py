@@ -47,12 +47,12 @@ class TaskManager:
             WHERE id = (
                 SELECT id FROM tasks WHERE status = 'pending' ORDER BY id LIMIT 1
             )
-            RETURNING command
+            RETURNING id, command
         """, (agent_id,))
 
         res = cur.fetchone()
         con.commit()
-        return res[0] if res else None
+        return res
 
     def complete_task(self, con, task_id, result):
         cur = con.cursor()

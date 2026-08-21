@@ -22,10 +22,10 @@ def run_http(stop_event, task_manager):
             task = task_manager.get_next_task(connection, agent_id)
              
             if task is None:
-                return {"task": None}
+                return {"task_id": None, "task": None}
             else:
-                print(f"[+/HTTP] Задача успешно получена агентом {agent_id}.")
-                return {"task": task}
+                print(f"[+/HTTP] Задача успешно отправлена агенту {agent_id}.")
+                return {"task_id": task[0], "task": task[1]}
         finally:
             connection.close()
 

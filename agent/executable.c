@@ -6,14 +6,17 @@
 
 void execute_command(const char* command, char* result, int max_result_len) {
     FILE* fp;
-    
+
     fp = popen(command, "r");
     if(fp == NULL) {
         printf("[-] Error popen.\n");
         exit(EXIT_FAILURE);
     }
+    char temp[128] = {0};
     char buf[4096] = {0};
-    fgets(buf, sizeof(buf) - 1, fp);
+    while(fgets(temp, sizeof(temp) - 1, fp) != NULL) {
+        strncat(buf, temp, strlen(temp));
+    }
 
     if(strlen(buf) >= max_result_len) {
         printf("[-] Error len command.\n");
