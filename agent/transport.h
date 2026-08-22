@@ -7,7 +7,7 @@ typedef struct {
     const char* name;
     int (*init)(void); //initialization.
     int (*get_command)(char *command, char* task_id, size_t max_len_command, char* agent_id); //fetch command for c2.
-    int (*send_result)(char* result); //send result to c2.
+    int (*send_result)(char* task_id, char* result); //send result to c2.
     void (*cleanup)(void); //clean resourse before exit
 } TransportModule;
 

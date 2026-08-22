@@ -39,9 +39,6 @@ def run_http(stop_event, task_manager):
             
             if result is True:
                 print(f"[+/HTTP] Задача {data.task_id} выполнена.")
-                return {"status": "ok"}
-            else:
-                return {"status": "error"}
         finally:
             connection.close()
 
