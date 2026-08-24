@@ -15,7 +15,7 @@ class TaskManager:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 command TEXT NOT NULL,
                 agent_id TEXT,
-                status TEXT NOT NULL DEFAULT 'pending' CHECK( status IN ('pending', 'assigned', 'completed', 'failed') ),
+                status TEXT NOT NULL DEFAULT 'pending' CHECK( status IN ('pending', 'assigned', 'completed') ),
                 result TEXT,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -68,17 +68,6 @@ class TaskManager:
             return True
         else:
             return False
-
-    def fail_task(self, con, task_id, error_msg):
-        cur = con.cursor()
-
-        cur.execute("""
-            UPDATE tasks
-            SET status = 'failed', result = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        """, (error_msg, task_id))
-
-        con.commit()
 
     def list_tasks(self, con, status=None):
         cur = con.cursor()

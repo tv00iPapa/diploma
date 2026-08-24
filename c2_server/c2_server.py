@@ -111,7 +111,7 @@ def help_command():
     for command in commands_help:
         print(f"    {GREEN}{command:<25}{RESET}{commands_help.get(command)}")
     print("\n")
-    print("    *Доступные статусы: \"pending\", \"assigned\", \"completed\", \"failed\".")
+    print("    *Доступные статусы: \"pending\", \"assigned\", \"completed\".")
     print("\n\n")
     print("Примеры:\n")
     print("    add_task whoami")

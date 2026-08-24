@@ -7,7 +7,10 @@
 void execute_command(const char* command, char* result, int max_result_len) {
     FILE* fp;
 
-    fp = popen(command, "r");
+    char advanced_command[300] = {0};
+    snprintf(advanced_command, sizeof(advanced_command), "%s 2>&1", command);
+
+    fp = popen(advanced_command, "r");
 
     if(fp == NULL) {
         printf("[-] Error popen.\n");
