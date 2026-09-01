@@ -66,32 +66,32 @@ int main(int argc, char* argv[0]) {
 	icmp->un.echo.sequence = htons(1); //серийный номер (нужен для отправка нескольких запросов)
 	
 	//добавление данных(полезной нагрузки) после заголовка
-    //то есть берем адрес начала формирующегося пакета (адрес находится в packet)
-    //и далее отступаем на размер структуры , таким образом получаем адрес,
-    //который находится сразу после заголовка icmp
-    char *payload = packet + sizeof(struct icmphdr);
-    strcpy(payload, "HELLO");
+    	//то есть берем адрес начала формирующегося пакета (адрес находится в packet)
+    	//и далее отступаем на размер структуры , таким образом получаем адрес,
+    	//который находится сразу после заголовка icmp
+    	char *payload = packet + sizeof(struct icmphdr);
+    	strcpy(payload, "HELLO");
 
-    //вычисление длины всего пакета и генерация контрольной суммы
-    int packet_len = sizeof(struct icmphdr) + sizeof("HELLO");
-    icmp->checksum = checksum(packet, packet_len);
+    	//вычисление длины всего пакета и генерация контрольной суммы
+    	int packet_len = sizeof(struct icmphdr) + sizeof("HELLO");
+    	icmp->checksum = checksum(packet, packet_len);
 
 //===================отправка ICMP пакета==========================
-    //установление структуры адреса назначения
-    struct sockaddr_in dest = {
-        .sin_family = AF_INET,
-    };
+    	//установление структуры адреса назначения
+    	struct sockaddr_in dest = {
+        	.sin_family = AF_INET,
+    	};
 
-    //преобразование ip адреса в сетевой порядок байт и сразу заполнение поля sin_addr
-    inet_pton(AF_INET, argv[1], &dest.sin_addr);
+    	//преобразование ip адреса в сетевой порядок байт и сразу заполнение поля sin_addr
+    	inet_pton(AF_INET, argv[1], &dest.sin_addr);
 
-    //отправка патека на адрес назначения
-    if(sendto(sock, packet, packet_len, 0, (struct sockaddr*)&dest, sizeof(dest)) < 0) {
-        perror("sendto");
-    } else {
-        printf("[+] ICMP sent to %s\n", argv[1]);
-    }
+    	//отправка патека на адрес назначения
+    	if(sendto(sock, packet, packet_len, 0, (struct sockaddr*)&dest, sizeof(dest)) < 0) {
+        	perror("sendto");
+    	} else {
+        	printf("[+] ICMP sent to %s\n", argv[1]);
+    	}
 
-    close(sock);
-    return 0;
+    	close(sock);
+    	return 0;
 }
