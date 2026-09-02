@@ -57,7 +57,7 @@ int main(int argc, char* argv[0]) {
 	memset(packet, 0, sizeof(packet)); //инициализация
 	
 	//наложение структуры icmp на область памяти packet
-	struct icmphdr *icmp = (struct icmphdr*)packet;
+	struct icmphdr* icmp = (struct icmphdr*)packet;
 	
 	//заполнение полей заголовка icmp
 	icmp->type = ICMP_ECHO; //type 8(request)
@@ -99,4 +99,34 @@ int main(int argc, char* argv[0]) {
 
     //получение пакета ответа ICMP
     int recv_len = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr*)&from, &from_len);
+
+    if(recv_len < 0) {
+        perror("recvfrom");
+    } else {
+        //анализ ip заголовка(данные приходящие на сырой сокет содержат ip заголовок)
+        struct iphdr* ip = (struct iphdr*)packet;
+        int ip_hdr_len = ip->ihl * 4; //длина ip заголовка (единица измерения ihl 4 байта)
+
+        //заголовок icmp после ip
+        struct icmphdr* icmp_reply = (struct icmphdr*)(packet + ip_hdr_len);
+
+        //проверка, является ли принятый пакет эхо ответом
+        if(icmp_reply->type == ICMP_ECHOREPLY) {
+            printf("[+] ICMP Reply from %s\n", inet_ntoa(from.sin_addr));
+            printf("    Type: %d, Code: %d\n", icmp_reply->type, icmp_reply->code);
+            printf("    ID: 0x%04x, Seq: %d\n",
+                    ntohs(icmp_reply->un.echo.id),
+                    ntohs(icmp_reply->un.echo.sequence));
+
+            //полезная нагрузка
+            int payload_len = recv_len - ip_hdr_len - sizeof(struct icmphdr);
+            if(payload_len > 0) {
+                char* recv_payload = packet + ip_hdr_len + sizeof(struct icmphdr);
+                printf("    Payload: %s\n", recv_payload);
+            }
+        } else {
+            printf("[-] Received icmp type %d (not Echo Reply)\n", icmp_reply->type);
+        }
+    }
+    return 0;
 }
