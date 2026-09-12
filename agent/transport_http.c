@@ -16,7 +16,7 @@
 static int current_sockfd = -1; //SOCKET
 
 //if return 0 - success
-static int http_init(void) {
+int http_init(void) {
     current_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(current_sockfd == -1) {
         return 1;

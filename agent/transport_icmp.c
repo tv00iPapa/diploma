@@ -10,6 +10,8 @@
 
 #define SERVER_IP "127.0.0.1"
 
+static int current_sockfd = -1; //RAW_SOCKET
+
 /**
  * @brief Функция для расчета контрольной суммы icmp пакета
  *
@@ -17,7 +19,6 @@
  * @param len Длина данных (пакета)
  * @return Значение контрольной суммы
 */
-
 int checksum(uint8_t* data, int len) {
     uint32_t summ = 0;
     uint16_t* p = (uint16_t*)data;
@@ -38,6 +39,39 @@ int checksum(uint8_t* data, int len) {
     }
 
     return (uint16_t)(~summ);
+}
+
+/**
+ * @brief Функция для инициализации сокета
+ *
+ * @param void Отсутствие аргументов
+ *
+ * @return В случае положительного исхода - 0 
+*/
+static int icmp_init(void) {
+    current_sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if(current_sockfd < 0) {
+        printf("[-/ICMP] Error create socket.");
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Функция позволяет получить команду агенту от сервера
+ *
+ * @param command Строка содержащая полученную команду для агента,
+ * выходной аргумент
+ * @param task_id Номер задачи, выходной аргумент
+ * @param max_len_command Размер буфера под команду
+ * @param max_len_task_id Размер буфера под номер задачи
+ * @param agent_id id агента
+ *
+ * @return В случае положительного исхода - 0
+*/
+static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, size_t max_len_command, size_t max_len_task_id, char* agent_id) {
+    return 0;
 }
 
 int main() {
