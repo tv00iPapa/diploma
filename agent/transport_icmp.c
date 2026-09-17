@@ -110,75 +110,81 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
     socklen_t from_len = sizeof(from);
     memset(packet, 0, sizeof(packet));
 
-    int recv_len = recvfrom(current_sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&from, &from_len);
-    
-    if(recv_len <= 0) {
-        printf("No tasks.\n");
-        return 1;
-    } else {
-        //анализ
-        //данные приходят в сырой сокет с ip заголовком, который тоже надо обработать
-        struct iphdr* ip = (struct iphdr*)packet;
-
-        int ip_hdr_len = ip->ihl * 4; //длина ip заголовка (ед. изм. = 4 байта)
+    //получение нужного пакета(даем 10 итераций чтобы пропустить ненужные пакеты)
+    int i = 10;
+    while(i > 0) { 
+        int recv_len = recvfrom(current_sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&from, &from_len);
         
-        //icmp заголовок
-        struct icmphdr* icmp_hdr = (struct icmphdr*)(packet + ip_hdr_len);
-
-        sleep(3);
-        //TODO почему так?
-        printf("[DEBUG] type: %d", icmp_hdr->type);
-
-        if(icmp_hdr->type == ICMP_ECHOREPLY) {
-            printf("[+/ICMP] Recevied task from server (%s).\n", inet_ntoa(from.sin_addr));
+        if(recv_len <= 0) {
+            printf("[-/ICMP] Error recvfrom.\n");
+            return 1;
+        } else {
+            //анализ
+            //данные приходят в сырой сокет с ip заголовком, который тоже надо обработать
+            struct iphdr* ip = (struct iphdr*)packet;
+    
+            int ip_hdr_len = ip->ihl * 4; //длина ip заголовка (ед. изм. = 4 байта)
             
-            int data_from_len = recv_len - ip_hdr_len - sizeof(struct icmphdr);
-            if(data_from_len > 0) {
-                char* data_from = packet + ip_hdr_len + sizeof(struct icmphdr);
-
-                //парсинг полученных данных
-                if(data_from[0] == 'T' && data_from[1] == 'A' && data_from[2] == 'S' &&
-                        data_from[3] == 'K' && data_from[4] == '|') {
-                    data_from += 5;
-                    char* pos = strchr(data_from, '|');
-                    if(pos != NULL) {
-                        //длина до разделителя
-                        size_t len = data_from - pos;
-                        if(len > max_len_task_id) {
-                            printf("[-/ICMP] Error. Len task_id invalid.\n");
-                            return 1;
-                        }
-                        char task_id_tmp[50] = {0};
-                        memcpy(task_id_tmp, data_from, len);
-                        data_from += (len + 1);
-
-                        //само задание
-                        pos = strchr(data_from, '|');
+            //icmp заголовок
+            struct icmphdr* icmp_hdr = (struct icmphdr*)(packet + ip_hdr_len);
+    
+            if(icmp_hdr->type == ICMP_ECHOREPLY) {
+                i = 0; 
+                printf("[+/ICMP] Recevied task from server (%s).\n", inet_ntoa(from.sin_addr));
+                
+                int data_from_len = recv_len - ip_hdr_len - sizeof(struct icmphdr);
+                if(data_from_len > 0) {
+                    char* data_from = packet + ip_hdr_len + sizeof(struct icmphdr);
+                    
+                    printf("[DEBUG] %s\n", data_from); 
+                    //парсинг полученных данных
+                    if(data_from[0] == 'T' && data_from[1] == 'A' && data_from[2] == 'S' &&
+                            data_from[3] == 'K' && data_from[4] == '|') {
+                        data_from += 5;
+    
+                        char* pos = strchr(data_from, '|');
                         if(pos != NULL) {
-                            len = data_from - pos;
-                            if(len > max_len_command) {
-                                printf("[-/ICMP] Error. Len task_command invalid.\n");
+                            //длина до разделителя
+                            size_t len = pos - data_from;
+                            if(len > max_len_task_id) {
+                                printf("[-/ICMP] Error. Len task_id invalid.\n");
                                 return 1;
                             }
-                            char task[100] = {0};
-
-                            printf("[+/ICMP] Получена задача (%s): %s\n", task_id_tmp, task);
-
-                            strcpy(task_id, task_id_tmp);
-                            strcpy(command, task);                                
+                            char task_id_tmp[50] = {0};
+                            memcpy(task_id_tmp, data_from, len);
+                            data_from += (len + 1);
+    
+                            //само задание
+                            pos = strchr(data_from, '|');
+                            if(pos != NULL) {
+                                len = pos - data_from;
+                                if(len > max_len_command) {
+                                    printf("[-/ICMP] Error. Len task_command invalid.\n");
+                                    return 1;
+                                }
+                                char task[100] = {0};
+    
+                                printf("[+/ICMP] Получена задача (%s): %s\n", task_id_tmp, task);
+    
+                                strcpy(task_id, task_id_tmp);
+                                strcpy(command, task);
+                                break;
+                            } else {
+                                printf("[-/ICMP] Invalid task.\n");
+                                return 1;
+                            }
                         } else {
-                            printf("[-/ICMP] Invalid task.\n");
+                            printf("[-/ICMP] Invalid task_id.\n");
+                            return 1;
                         }
                     } else {
-                        printf("[-/ICMP] Invalid task_id.\n");
+                        printf("[-/ICMP] Invalid data(header).\n");
+                        return 1;
                     }
                 } else {
-                    printf("[-/ICMP] Invalid data(header).\n");
+                    printf("[-/ICMP] The data is missing.\n");
                     return 1;
                 }
-            } else {
-                printf("[-/ICMP] The data is missing.\n");
-                return 1;
             }
         }
     }
