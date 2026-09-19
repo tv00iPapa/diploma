@@ -1,3 +1,4 @@
+#include "config.h"
 #include "transport.h"
 
 #include <stdio.h>
@@ -7,8 +8,6 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/ip_icmp.h>
-
-#define SERVER_IP "127.0.0.1"
 
 static int current_sockfd = -1; //RAW_SOCKET
 

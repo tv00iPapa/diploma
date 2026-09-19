@@ -1,3 +1,4 @@
+#include "config.h"
 #include "transport.h"
 
 #include <stdio.h>
@@ -9,9 +10,6 @@
 #include <sys/socket.h> //socket
 #include <netinet/in.h> //sockaddr_in
 #include <arpa/inet.h> //inet_pton
-                       
-#define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 8080
 
 static int current_sockfd = -1; //SOCKET
 

