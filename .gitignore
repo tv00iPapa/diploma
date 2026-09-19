@@ -4,4 +4,8 @@ __pycache__/
 
 # C / Complited binaries
 *.o
+agent/agent
+
+# more
 *.swp
+c2_server/c2_tasks.db

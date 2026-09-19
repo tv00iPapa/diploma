@@ -108,11 +108,11 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
     //получение ответа от сервера
     struct sockaddr_in from;
     socklen_t from_len = sizeof(from);
-    memset(packet, 0, sizeof(packet));
 
     //получение нужного пакета(даем 10 итераций чтобы пропустить ненужные пакеты)
     int i = 10;
     while(i > 0) { 
+        memset(packet, 0, sizeof(packet));
         int recv_len = recvfrom(current_sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&from, &from_len);
         
         if(recv_len <= 0) {
@@ -136,7 +136,6 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
                 if(data_from_len > 0) {
                     char* data_from = packet + ip_hdr_len + sizeof(struct icmphdr);
                     
-                    printf("[DEBUG] %s\n", data_from); 
                     //парсинг полученных данных
                     if(data_from[0] == 'T' && data_from[1] == 'A' && data_from[2] == 'S' &&
                             data_from[3] == 'K' && data_from[4] == '|') {
@@ -144,14 +143,17 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
     
                         char* pos = strchr(data_from, '|');
                         if(pos != NULL) {
+                            if(data_from[0] == 'n' && data_from[1] == 'u' && data_from[2] == 'l' && data_from[3] == 'l') {
+                                printf("[+/ICMP] На данный момент задач для выполнения нет.\n");
+                                break;
+                            }
                             //длина до разделителя
                             size_t len = pos - data_from;
                             if(len > max_len_task_id) {
                                 printf("[-/ICMP] Error. Len task_id invalid.\n");
                                 return 1;
                             }
-                            char task_id_tmp[50] = {0};
-                            memcpy(task_id_tmp, data_from, len);
+                            memcpy(task_id, data_from, len);
                             data_from += (len + 1);
     
                             //само задание
@@ -162,16 +164,12 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
                                     printf("[-/ICMP] Error. Len task_command invalid.\n");
                                     return 1;
                                 }
-                                char task[100] = {0};
+                                memcpy(command, data_from, len);
     
-                                printf("[+/ICMP] Получена задача (%s): %s\n", task_id_tmp, task);
-    
-                                strcpy(task_id, task_id_tmp);
-                                strcpy(command, task);
+                                printf("[+/ICMP] Получена задача (%s): %s\n", task_id, command);
                                 break;
                             } else {
-                                printf("[-/ICMP] Invalid task.\n");
-                                return 1;
+                                printf("[-/ICMP] Error. Invalid task.\n");
                             }
                         } else {
                             printf("[-/ICMP] Invalid task_id.\n");

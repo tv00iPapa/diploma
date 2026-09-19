@@ -38,6 +38,7 @@ def run_icmp(stop_event, task_manager):
                 print(f"Запрос задачи агентом {agent_id}")
 
                 connection = task_manager.get_connection()
+
                 try:
                     task = task_manager.get_next_task(connection, agent_id)
 
@@ -52,7 +53,7 @@ def run_icmp(stop_event, task_manager):
                     header_icmp = struct.pack("!BBHHH", 0, 0, chsm, 0x666, 1)
                     packet = header_icmp + answer
 
-                    #TODO разобраться с этим
+                    print(f"[DEBUG] {packet}")
                     s.sendto(packet, address)
                     print("[+/ICMP] Задача отправлена агенту.")
                 finally:
