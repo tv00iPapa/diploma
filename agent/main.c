@@ -34,17 +34,15 @@ int main() {
             printf("К серверу подключен...\n");
             if(active_channel->get_command(command, task_id,  sizeof(command), sizeof(task_id), AGENT_ID) == 0) {
                 active_channel->cleanup();
-                execute_command(command, result, sizeof(result));
-                sleep(1);
+                //execute_command(command, result, sizeof(result));
+                //sleep(1);
                 
                 //Для отправки результата
-                active_channel->init();
-                active_channel->send_result(task_id, result);
-                active_channel->cleanup();
+                //active_channel->init();
+                //active_channel->send_result(task_id, result);
+                //active_channel->cleanup();
             } else {
                 active_channel->cleanup();
-                printf("[DEBUG] Задач нет.\n");
-                fflush(stdout);
                 sleep(1);
             }
         }

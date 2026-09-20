@@ -114,16 +114,11 @@ static int http_get_command(char* command, char* task_id, size_t max_len_command
     }
     buf[total] = '\0';
 
-    printf("[DEBUG] %s\n", buf);
-
-    printf("[DEBUG] %s\n", body);
-
     if(body == NULL) {
         printf("[-/HTTP] Error, body answer is empty.\n");
         return 1;
     }
 
-    printf("[DEBUG] %s\n", body);
     char* quote = strchr(body, '\"');
     if(quote == NULL) {
         printf("[-/HTTP] Error, not found quote.\n");
