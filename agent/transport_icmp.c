@@ -16,13 +16,13 @@ static int current_sockfd = -1; //RAW_SOCKET
 static struct in_addr server_addr;
 
 /**
- * @brief Функция для расчета контрольной суммы icmp пакета
+ * @brief Функция для расчета контрольной суммы icmp пакета, static чтобы функция не была экспортируемой
  *
  * @param data Указатель на данные (сам пакет)
  * @param len Длина данных (пакета)
  * @return Значение контрольной суммы
 */
-int checksum(uint8_t* data, int len) {
+static int checksum(uint8_t* data, int len) {
     uint32_t summ = 0;
     uint16_t* p = (uint16_t*)data;
 
@@ -60,7 +60,7 @@ static int icmp_init(void) {
 
     //установка тайм аута
     struct timeval tv = {
-        .tv_sec = 5,
+        .tv_sec = 2,
         .tv_usec = 0
     };
     setsockopt(current_sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -81,7 +81,7 @@ static int icmp_init(void) {
  *
  * @return Функция возращает 0 в случае успеха
 */
-int send_packet(char* data_request, int data_request_len) {
+static int send_packet(char* data_request, int data_request_len) {
     char packet[1500];
     memset(packet, 0, sizeof(packet));
 
@@ -142,12 +142,14 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
 
     //получение нужного пакета(даем 10 итераций чтобы пропустить ненужные пакеты)
     int attempts_left = ICMP_MAX_ITERATIONS;
-    while(attempts_left > 0) {
+    while(attempts_left-- > 0) {
+        //сбро перед каждой итерацией
         memset(packet_answer, 0, sizeof(packet_answer));
+        from_len = sizeof(from);
         int recv_len = recvfrom(current_sockfd, packet_answer, sizeof(packet_answer), 0, (struct sockaddr*)&from, &from_len);
         
         if(recv_len <= 0 || recv_len < (int)sizeof(struct iphdr)) {
-            return 1; //идем на следующую итерацию получения пакета, так как ничего не пришло либо битый пакет
+            continue; //идем на следующую итерацию получения пакета, так как ничего не пришло либо битый пакет
         } else {
             //анализ полученных данных
             //данные приходят в сырой сокет с ip заголовком, который тоже надо обработать
@@ -160,10 +162,6 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
    
             //проверка ip адреса сервера
             if(from.sin_addr.s_addr != server_addr.s_addr) {
-                continue;
-            }
-            //проверка контрольной суммы пришедшего пакета
-            if(checksum((uint8_t*)(packet_answer + ip_hdr_len), icmp_len) != 0) {
                 continue;
             }
 
@@ -222,16 +220,28 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
                 }
             }
         }
-        attempts_left--;
     }
     printf("[+/ICMP] No responce from the server.\n");
     return 1;
 }
 
 /**
+ * @brief Функция для отправки результата на сервер
+ *
+ * @param task_id Номер задачи
+ * @param result результат выполненной задачи
+ *
  * @return В случае положительного исхода - 0
 */
 static int icmp_send_result(char* task_id, char* result) {
+    char data_result[1000]; 
+    memset(data_result, 0, sizeof(data_result));
+    int data_result_len = snprintf(data_result, 999, "RESULT|%s|%s|", task_id, result);
+    if(send_packet(data_result, data_result_len) != 0) {
+        printf("[-/ICMP] Dont send result.\n");
+        return 1;
+    }
+
     return 0;
 }
 

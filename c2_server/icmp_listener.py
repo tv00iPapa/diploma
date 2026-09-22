@@ -1,6 +1,5 @@
 import socket
 import struct
-import time
 
 HOST = "0.0.0.0"
 
@@ -24,7 +23,7 @@ def checksum(data):
 def run_icmp(stop_event, task_manager):
 
     with socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP) as s:
-        #bind(), listen() и accept() не используется так как работа идет с сырыми сокетамши
+        #bind(), listen() и accept() не используется так как работа идет с сырыми сокетами
         print("[+/ICMP] icmp-слушатель работает.")
 
         while not stop_event.is_set():
@@ -33,9 +32,11 @@ def run_icmp(stop_event, task_manager):
             icmp_type = ip_packet[ip_len_hdr]
             icmp_payload = ip_packet[ip_len_hdr + 8:]
             
+            if icmp_type != 8:
+                continue
+
             if icmp_payload[:8] == "GET_TASK".encode('utf-8'):
-                agent_id = icmp_payload[9:-1].decode('utf-8')
-                print(f"Запрос задачи агентом {agent_id}")
+                agent_id = icmp_payload[9:-1].decode('utf-8') 
 
                 connection = task_manager.get_connection()
 
@@ -46,6 +47,7 @@ def run_icmp(stop_event, task_manager):
                         answer = "TASK|null|".encode('utf-8')
                     else:
                         answer = f"TASK|{task[0]}|{task[1]}|".encode('utf-8')
+                        print("[+/ICMP]Задача отправлена агенту.")
 
                     header_icmp = struct.pack("!BBHHH", 0, 0, 0, 0x666, 1)
                     packet = header_icmp + answer
@@ -54,14 +56,22 @@ def run_icmp(stop_event, task_manager):
                     packet = header_icmp + answer
  
                     s.sendto(packet, address)
-                    print("[+/ICMP] Задача отправлена агенту.")
                 finally:
                     connection.close()
 
             elif icmp_payload[:6] == "RESULT".encode('utf-8'):
-                pass
+                payload_str = icmp_payload.decode('utf-8')
+                parts = payload_str.split('|', 2)
+                task_id = parts[1]
+                result = parts[2][:-1]
                 
+                connection = task_manager.get_connection()
 
-            time.sleep(5)
+                try:
+                    task_manager.complete_task(connection, task_id, result) 
+                    
+                    print(f"[+/ICMP] Получен результат по задаче ({task_id}).")
+                finally:
+                    connection.close()
 
     print("[+/ICMP] icmp-слушатель прекратил работу.")
