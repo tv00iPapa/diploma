@@ -7,5 +7,7 @@ __pycache__/
 agent/agent
 
 # more
+dns
+icmp_tunnel
 *.swp
 c2_server/c2_tasks.db

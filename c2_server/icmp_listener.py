@@ -1,8 +1,6 @@
 import socket
 import struct
 
-HOST = "0.0.0.0"
-
 def checksum(data):
     summ = 0
     

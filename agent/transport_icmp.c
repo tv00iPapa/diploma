@@ -143,7 +143,7 @@ static int icmp_get_command(/*[OUT]*/ char* command,/*[OUT]*/ char* task_id, siz
     //получение нужного пакета(даем 10 итераций чтобы пропустить ненужные пакеты)
     int attempts_left = ICMP_MAX_ITERATIONS;
     while(attempts_left-- > 0) {
-        //сбро перед каждой итерацией
+        //сброс перед каждой итерацией
         memset(packet_answer, 0, sizeof(packet_answer));
         from_len = sizeof(from);
         int recv_len = recvfrom(current_sockfd, packet_answer, sizeof(packet_answer), 0, (struct sockaddr*)&from, &from_len);
