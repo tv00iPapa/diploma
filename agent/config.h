@@ -11,6 +11,7 @@
 #define SERVER_PORT 8080 //config data
 #define AGENT_ID "agent_999" //config data
 #define ICMP_ID 0x666
+#define DNS_ID 0x6666
                              //
 #define SLEEP_INTERVAL 5 //config data
 

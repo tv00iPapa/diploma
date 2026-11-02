@@ -18,6 +18,31 @@ void encode_base32(char* data) {
 
 }
 
+/**
+ * @brief Функция для сбора dns пакета со всеми необходимыми полями
+ *
+ * @param qname Буфер в котором хранится доменное имя, чтобы из него сформировать пакет(входной аргумент)
+ * @param buffer Буфер в котором хранится сформированный dns пакет(выходной параметр)
+ * @param qtype Тип запроса
+ *
+ * @return Количество размер сформированного пакета 
+*/
+int build_dns_query(const char* qname, unsigned char* buffer, size_t max_len_buffer, int16_t qtype) {
+    int offset = 0; //pointer for buffer
+
+    buffer[offset++] = (DNS_ID >> 8) & 0xFF; //ID
+    buffer[offset++] = DNS_ID & 0xFF; //ID
+    buffer[offset++] = 0x01; //flag
+    buffer[offset++] = 0x00; //flag
+    uint16_t qdcount = htons(0x01); //qdcount
+    memcpy(&buffer[offset], &qdcount, 2);
+    offset += 2;
+    memset(&buffer[offset], 0, 6);
+    offset += 6; 
+
+    return offset;
+}
+
 int dns_init(void) {
     current_sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(current_sockfd == -1) {
