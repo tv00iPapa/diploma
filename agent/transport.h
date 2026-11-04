@@ -12,8 +12,7 @@ typedef struct {
 } TransportModule;
 
 extern TransportModule http_transport;
-extern TransportModule https_transport;//TODO: реализовать после dns
-extern TransportModule icmp_transport;//TODO: после http
-extern TransportModule dns_transport; //TODO: после icmp
+extern TransportModule icmp_transport;
+extern TransportModule dns_transport; 
 
 #endif

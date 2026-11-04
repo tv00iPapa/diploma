@@ -7,6 +7,7 @@
 void execute_command(const char* command, char* result, int max_result_len) {
     FILE* fp;
 
+    //printf("[DEBUG] Command: %s\n", command);
     char advanced_command[300] = {0};
     snprintf(advanced_command, sizeof(advanced_command), "%s 2>&1", command);
 
@@ -34,5 +35,6 @@ void execute_command(const char* command, char* result, int max_result_len) {
 
     strncpy(result, buf, strlen(buf));
     
+    //printf("[DEBUG] Result: %s", result);
     pclose(fp);
 }

@@ -16,7 +16,7 @@ int main() {
     #elif TRANSPORT == TRANSPORT_ICMP
         TransportModule* active_channel = &icmp_transport;
     #elif TRANSPORT == TRANSPORT_DNS
-        //TODO TransportModule* active_channel = &dns_transport;
+        TransportModule* active_channel = &dns_transport;
     #else
         printf("[MAIN] Channel is unknown.\n");
         return 1;
