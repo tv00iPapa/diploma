@@ -3,7 +3,7 @@ import struct
 import base64
 import binascii
 
-HOST = ('192.168.56.1', 53) #server address
+HOST = ('127.0.0.1', 53) #server address
 
 def decode_base32(data :str) -> str:
     data = data.upper()

