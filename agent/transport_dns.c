@@ -184,7 +184,7 @@ static int send_chank_and_wait(const char* qname) {
     for(int i = 0; i < 3; i++) {
         int response_len = send_dns_packet(buffer, dns_packet_len, response, sizeof(response));
         printf("[DEBUG] %s\n", response);
-        if(response_len > 0 && strstr((char*)response, "OK") != NULL) {
+        if(response_len > 0 && strncmp((char*)&response[response_len - 2], "OK", 2) == 0) {
             return 0;
         }
     }
