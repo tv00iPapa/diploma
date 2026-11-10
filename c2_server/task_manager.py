@@ -91,3 +91,28 @@ class TaskManager:
         """, (task_id,))
 
         return cur.fetchone()
+
+    def remove_task(self, con, task_id):
+        cur = con.cursor()
+
+        cur.execute("""
+            DELETE FROM tasks WHERE id = ?
+        """, (task_id,))
+        con.commit()
+
+        if cur.rowcount > 0:
+            return True
+        else:
+            return False
+
+    def clear_list_tasks(self, con):
+        cur = con.cursor()
+
+        cur.execute("""
+            DELETE FROM tasks
+        """)
+        cur.execute("""
+            DELETE FROM sqlite_sequence WHERE name='tasks'
+        """)
+        con.commit()
+

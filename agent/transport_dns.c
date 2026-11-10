@@ -183,8 +183,7 @@ static int send_chank_and_wait(const char* qname) {
 
     for(int i = 0; i < 3; i++) {
         int response_len = send_dns_packet(buffer, dns_packet_len, response, sizeof(response));
-        printf("[DEBUG] %s\n", response);
-        if(response_len > 0 && strncmp((char*)&response[response_len - 2], "OK", 2) == 0) {
+        if(response_len >= 2 && strncmp((char*)&response[response_len - 2], "OK", 2) == 0) {
             return 0;
         }
     }
@@ -304,9 +303,12 @@ static int dns_send_result(char* task_id, char* result) {
         return -1;
     }
 
-    char base32_result[2000]; //buffer for string base32
+    char base32_result[4096]; //buffer for string base32
     int b32_len = encode_base32((const unsigned char*)result, strlen(result), base32_result, sizeof(base32_result));
-   
+    if(b32_len <= 0) {
+        return -1;
+    }
+
     int chunk_size = 30;
     int offset = 0;
     int part_num = 1;
