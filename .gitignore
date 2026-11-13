@@ -1,6 +1,7 @@
 # Python
 .venv/
 __pycache__/
+c2_server/.c2_history
 
 # C / Complited binaries
 *.o
