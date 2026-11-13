@@ -3,7 +3,7 @@ import struct
 import base64
 import binascii
 
-HOST = ('127.0.0.1', 53) #server address
+HOST = ('0.0.0.0', 53) #server address
 
 def decode_base32(data :str) -> str:
     data = data.upper()
@@ -45,13 +45,17 @@ def send_answer(ans, address, agent_id, data, idx, s):
 
 def run_dns(stop_event, task_manager):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0) as s:
+        s.settimeout(1.0)
         s.bind(HOST)
         print("[+/DNS] dns-слушатель работает.")
             
         result_tmp = {} #for bigger result
 
         while not stop_event.is_set():
-            data, address = s.recvfrom(1024)
+            try:
+                data, address = s.recvfrom(1024)
+            except socket.timeout:
+                continue
 
             try:
                 #parse dns_packet
